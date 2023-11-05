@@ -26,7 +26,7 @@ fn main() -> eyre::Result<()> {
     let mut driver = LedcDriver::new(
         peripherals.ledc.channel0,
         timer_driver,
-        peripherals.pins.gpio6
+        peripherals.pins.gpio6,
     )?;
 
     let max_duty = driver.get_max_duty(); // 1023, see Resolution::Bits10 above
@@ -54,5 +54,4 @@ fn main() -> eyre::Result<()> {
         FreeRtos::delay_ms(5000);
         blue_led_pin.set_low();
     }
-
 }

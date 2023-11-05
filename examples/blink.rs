@@ -24,7 +24,7 @@ fn main() {
     let mut tmp = false;
     loop {
         log::info!("start loop");
-        
+
         if tmp {
             led2_pin.set_low().unwrap();
             led3_pin.set_high().unwrap()
@@ -44,7 +44,5 @@ fn main() {
         green_led_pin.set_low().unwrap();
         blue_led_pin.set_high().unwrap();
         FreeRtos::delay_ms(500);
-
     }
-
 }
