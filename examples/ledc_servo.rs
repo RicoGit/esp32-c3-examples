@@ -52,6 +52,6 @@ fn main() -> eyre::Result<()> {
         log::info!("Max duty {}", driver.get_duty());
         blue_led_pin.set_high()?;
         FreeRtos::delay_ms(5000);
-        blue_led_pin.set_low();
+        blue_led_pin.set_low()?;
     }
 }

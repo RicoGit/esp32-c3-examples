@@ -14,7 +14,10 @@ fn main() -> Result<()> {
 
     let peripherals = Peripherals::take().unwrap();
 
-    let config = ServoConfig::sg90(ledc::SpeedMode::LowSpeed);
+    let config = ServoConfig {
+        pulse_width_ns: 600..2400,
+        ..ServoConfig::sg90(ledc::SpeedMode::LowSpeed)
+    };
     let mut servo = Servo::new(
         config,
         peripherals.ledc.timer0,
@@ -24,15 +27,39 @@ fn main() -> Result<()> {
 
     loop {
         servo.set_angle(0.0)?;
-        log::info!("current angle {}", servo.get_angle());
-        FreeRtos::delay_ms(5000);
+        println!(
+            "current angle {} {}",
+            servo.get_angle(),
+            servo.ledc_driver.get_duty()
+        );
+        FreeRtos::delay_ms(3000);
 
-        servo.set_angle(90.0)?;
-        log::info!("current angle {}", servo.get_angle());
-        FreeRtos::delay_ms(5000);
+        servo.set_angle(30.0)?;
+        println!(
+            "current angle {} {}",
+            servo.get_angle(),
+            servo.ledc_driver.get_duty()
+        );
+        FreeRtos::delay_ms(3000);
 
-        servo.set_angle(180.0)?;
-        log::info!("current angle {}", servo.get_angle());
-        FreeRtos::delay_ms(5000);
+        servo.set_angle(70.0)?;
+        println!(
+            "current angle {} {}",
+            servo.get_angle(),
+            servo.ledc_driver.get_duty()
+        );
+        FreeRtos::delay_ms(3000);
     }
+
+    // let mut ang = 0.0;
+    // loop {
+    //     servo.set_angle(ang)?;
+    //     FreeRtos::delay_ms(500);
+    //     println!("current angle {}=={} {}", ang, servo.get_angle(), servo.ledc_driver.get_duty());
+    //     ang += 1.0;
+    //
+    //     if ang == 180.0 {
+    //         ang = 0.0;
+    //     }
+    // }
 }
