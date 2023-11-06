@@ -9,6 +9,8 @@ use esp_idf_svc::hal::peripheral::Peripheral;
 use esp_idf_svc::hal::prelude::{FromValueType, Hertz};
 use esp_idf_svc::sys::EspError;
 use std::marker::PhantomData;
+use std::ops::Range;
+use std::time::Duration;
 
 pub struct ServoBuilder {}
 
@@ -17,13 +19,15 @@ impl ServoBuilder {}
 pub struct ServoConfig {
     /// Max angle that servo can't be turned, mostly 180, 360.
     max_angle: u32,
-    /// Resolution in bits.
+    /// What frequency expect servo (ex. 50Hz for SG90).
+    frequency: Hertz,
+    /// What pulse width servo supports (ex. 500-2400ns for SG90).
+    pulse_width_ns: Range<u32>,
+    /// PWM resolution in bits.
     resolution: ledc::Resolution,
     /// ESP32 supports High Speed Mode.
     /// ESP32S2, ESP32S3, ESP32C2 and ESP32C3 supports Low Speed Mode.
     speed_mode: ledc::SpeedMode,
-    /// What frequency expect servo (ex. 50Hz for SG90)
-    frequency: Hertz,
 }
 
 impl ServoConfig {
@@ -31,9 +35,10 @@ impl ServoConfig {
     pub fn sg90(speed_mode: ledc::SpeedMode) -> Self {
         ServoConfig {
             max_angle: 180,
-            resolution: ledc::Resolution::Bits10,
-            speed_mode,
             frequency: 50.Hz(),
+            pulse_width_ns: 500..2400,
+            speed_mode,
+            resolution: ledc::Resolution::Bits10,
         }
     }
 
@@ -73,15 +78,52 @@ impl<'d> Servo<'d> {
     }
 
     pub fn get_angle(&self) -> u32 {
-        let current_duty = self.ledc_driver.get_duty();
         let max_duty = self.ledc_driver.get_max_duty();
-        let max_angle = self.config.max_angle;
-        max_angle * current_duty / max_duty
+        let current_duty = self.ledc_driver.get_duty();
+        calculate_angle(&self.config, current_duty, max_duty) as u32
     }
 
-    pub fn set_angle(&mut self, angle: u32) -> Result<(), EspError> {
+    pub fn set_angle(&mut self, angle: f64) -> Result<(), EspError> {
         let max_duty = self.ledc_driver.get_max_duty();
-        let max_angle = self.config.max_angle;
-        self.ledc_driver.set_duty(max_duty * angle / max_angle)
+        let duty = calculate_duty(&self.config, angle, max_duty);
+        self.ledc_driver.set_duty(duty)
+    }
+}
+
+const NANOS_IS_SEC: f64 = 1_000_000.0;
+
+/// Transforms 'angle' to 'duty' in respect that given servo pulse range.
+fn calculate_duty(config: &ServoConfig, angle: f64, max_duty: u32) -> u32 {
+    let pulse_ns = angle / config.max_angle as f64
+        * (config.pulse_width_ns.end - config.pulse_width_ns.start) as f64
+        + (config.pulse_width_ns.start as f64);
+
+    let duty = pulse_ns * max_duty as f64 * config.frequency.0 as f64 / NANOS_IS_SEC;
+    duty as u32
+}
+
+/// Transforms 'duty' to 'angle' in respect that given servo pulse range.
+fn calculate_angle(config: &ServoConfig, duty: u32, max_duty: u32) -> f64 {
+    let pulse_ns =
+        (duty as f64 * NANOS_IS_SEC / config.frequency.0 as f64 / max_duty as f64);
+
+    let angle =
+        (pulse_ns - config.pulse_width_ns.start as f64)
+        / (config.pulse_width_ns.end - config.pulse_width_ns.start) as f64
+        * config.max_angle as f64;
+    angle
+}
+
+
+#[cfg(test)]
+pub mod tests {
+    use esp_idf_svc::hal::ledc::SpeedMode;
+    use crate::ledc_servo_lib::{calculate_duty, Servo, ServoConfig};
+
+    #[test]
+    fn calculate_duty_test() {
+        let config = ServoConfig::sg90(SpeedMode::LowSpeed);
+        // assert_eq!(calculate_duty(&config, 0.0, 1023), 42);
+        // todo tests
     }
 }

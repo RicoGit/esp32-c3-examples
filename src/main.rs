@@ -23,15 +23,15 @@ fn main() -> Result<()> {
     )?;
 
     loop {
-        servo.set_angle(0)?;
+        servo.set_angle(0.0)?;
         log::info!("current angle {}", servo.get_angle());
         FreeRtos::delay_ms(5000);
 
-        servo.set_angle(90)?;
+        servo.set_angle(90.0)?;
         log::info!("current angle {}", servo.get_angle());
         FreeRtos::delay_ms(5000);
 
-        servo.set_angle(180)?;
+        servo.set_angle(180.0)?;
         log::info!("current angle {}", servo.get_angle());
         FreeRtos::delay_ms(5000);
     }
