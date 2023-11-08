@@ -9,7 +9,7 @@
 
 Read [The Rust on ESP Book](https://esp-rs.github.io/book/introduction.html) it's a better starting point.
 
-vidio tutorial https://www.youtube.com/playlist?list=PLkch9g9DEE0Lkm1LqcD7pZNDmXEczOo-a
+video tutorial https://www.youtube.com/playlist?list=PLkch9g9DEE0Lkm1LqcD7pZNDmXEczOo-a
 tutorial - https://github.com/shanemmattner/ESP32-C3_Rust_Tutorials/tree/main/Tutorials/p0-output
 
 **template for all ESP32** https://github.com/esp-rs/esp-idf-template
