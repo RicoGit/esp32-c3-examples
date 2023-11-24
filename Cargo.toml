@@ -28,6 +28,7 @@ log = { version = "0.4", default-features = false }
 # Safe Rust wrappers for the services in the ESP IDF SDK. Prefer use it instead of `esp-idf-sys` and `esp-idf-hal`
 # Re-exports `esp-idf-hal` and `esp-idf-sys` as `esp_idf_svc::hal` and `esp_idf_svc::sys`.
 esp-idf-svc = { version = "0.47.2" }
+uln2003 = "0.2"
 
 pcf857x = "0.4"
 eyre = "0.6.8"
