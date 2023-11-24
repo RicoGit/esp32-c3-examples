@@ -5,19 +5,10 @@
 //! io5 - sda
 //! io6 - scl
 //!
-//!
-//! # 28BYJ-48 steps
-//!
-//!  * In1 In2 In3 In4
-//!  *  1   0   1   0
-//!  *  0   1   1   0
-//!  *  0   1   0   1
-//!  *  1   0   0   1
-//!
 //! (inspired by https://github.com/arduino-libraries/Stepper/blob/master/src/Stepper.cpp)
 //! `cargo run --example uln2003_via_pcf8574`
 
-use esp_idf_svc::hal::delay::{Ets};
+use esp_idf_svc::hal::delay::{Delay, Ets};
 use esp_idf_svc::hal::i2c::{I2cConfig, I2cDriver};
 use esp_idf_svc::hal::prelude::*;
 
@@ -43,22 +34,21 @@ fn main() -> eyre::Result<()> {
     let i2c = I2cDriver::new(i2c, sda, scl, &config)?;
     let mut expander: Pcf8574<I2cDriver> = Pcf8574::new(i2c, SlaveAddr::Alternative(true, true, true));
 
-    let Parts { p4, p5, p6, p7, .. } = expander.split();
-    let mut motor = Motor::new(p4, p5, p6, p7);
+    let Parts { p7, p6, p5, p4, .. } = expander.split();
+    let mut motor = Motor::new(p7, p6, p5, p4);
+    let delay = Delay::new(20_000);
 
     loop {
         log::info!("move forward");
-        for _ in 0..4096 {
+        for _ in 0..2048 {
             motor.step_forward();
-            // FreeRtos::delay_ms(20)
-            Ets::delay_ms(2);
+            delay.delay_ms(2);
         }
 
         log::info!("move backward");
-        for _ in 0..4096 {
+        for _ in 0..2048 {
             motor.step_back();
-            // FreeRtos::delay_ms(20)
-            Ets::delay_ms(2);
+            delay.delay_ms(2);
         }
     }
 }
@@ -93,7 +83,7 @@ impl<P1: OutputPin, P2: OutputPin, P3: OutputPin, P4: OutputPin> Motor<P1, P2, P
     fn step_forward(&mut self
     ) {
         self.do_step();
-        if self.step == 3 {
+        if self.step == 7 {
             self.step = 0;
         } else {
             self.step += 1;
@@ -104,7 +94,7 @@ impl<P1: OutputPin, P2: OutputPin, P3: OutputPin, P4: OutputPin> Motor<P1, P2, P
     ) {
         self.do_step();
         if self.step == 0 {
-            self.step = 3;
+            self.step = 7;
         } else {
             self.step -= 1;
         }
@@ -119,25 +109,51 @@ impl<P1: OutputPin, P2: OutputPin, P3: OutputPin, P4: OutputPin> Motor<P1, P2, P
 
     fn do_step(&mut self) {
         match self.step {
-            0 => {   // 1010
-                self.int1.set_high();
+            0 => {
+                // 0001
+                self.int1.set_low();
+                self.int2.set_low();
+                self.int3.set_low();
+                self.int4.set_high();
+            }
+            1 => {  // 0011
+                self.int1.set_low();
+                self.int2.set_low();
+                self.int3.set_high();
+                self.int4.set_high();
+            }
+            2 => {  // 0010
+                self.int1.set_low();
                 self.int2.set_low();
                 self.int3.set_high();
                 self.int4.set_low();
             }
-            1 => {  // 0110
+            3 => {  // 0110
                 self.int1.set_low();
                 self.int2.set_high();
                 self.int3.set_high();
                 self.int4.set_low();
             }
-            2 => {  // 0101
+            4 => {
+                // 0100
                 self.int1.set_low();
                 self.int2.set_high();
                 self.int3.set_low();
-                self.int4.set_high();
+                self.int4.set_low();
             }
-            3 => {  // 1001
+            5 => {  // 1100
+                self.int1.set_high();
+                self.int2.set_high();
+                self.int3.set_low();
+                self.int4.set_low();
+            }
+            6 => {  // 1000
+                self.int1.set_high();
+                self.int2.set_low();
+                self.int3.set_low();
+                self.int4.set_low();
+            }
+            7 => {  // 1001
                 self.int1.set_high();
                 self.int2.set_low();
                 self.int3.set_low();
