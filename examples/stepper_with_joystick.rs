@@ -39,19 +39,21 @@ fn main() -> eyre::Result<()> {
     let mut adc_pin_y: AdcChannelDriver<{ attenuation::DB_11 }, _> =
         AdcChannelDriver::new(peripherals.pins.gpio1)?;
 
-    // port expander (PCF8574)
+    log::info!("init port expander");
     let config = I2cConfig::new().baudrate(100.kHz().into());
     let i2c = I2cDriver::new(i2c, sda, scl, &config)?;
     let expander: Pcf8574<I2cDriver> = Pcf8574::new(i2c, SlaveAddr::Alternative(true, true, true));
     let Parts { p7, p6, p5, p4, p3, p2, p1, p0 } = expander.split();
     
-    // motors
+    log::info!("init motor");
     let delay = Delay::new(10_000);
     let mut motor1 = uln2003::ULN2003::<_,_,_,_, u32, _>::new(p7, p6, p5, p4, Some(delay.clone()));
     let mut motor2 = uln2003::ULN2003::<_,_,_,_, u32, _>::new(p3, p2, p1, p0, Some(delay));
 
     let mut motor1_last_step_elapsed = 0;
     let mut motor2_last_step_elapsed = 0;
+
+    log::info!("start loop");
     loop {
         match Cmd::from_joystick_value(adc.read(&mut adc_pin_x)?) {
             Cmd::Stop => { motor1.stop().unwrap(); }
@@ -88,7 +90,7 @@ fn main() -> eyre::Result<()> {
                 };
             }
         }
-        delay.delay_ms(MIN_DELAY_MS);
+        delay.delay_us(100);
         motor1_last_step_elapsed += MIN_DELAY_MS;
         motor2_last_step_elapsed += MIN_DELAY_MS;
     }
@@ -98,14 +100,15 @@ fn main() -> eyre::Result<()> {
 const MIN_DELAY_MS: u32 = 1;
 const MAX_DELAY_MS: u32 = 20;
 
-const JOYSTICK_MIN: u32 = 0;
-const JOYSTICK_CENTER: u32 = 1620;
-const JOYSTICK_MAX: u32 = 2081;
-const JOYSTICK_THRESHOLD: u32 = 50;
+const JOYSTICK_MIN: u32 = 1;
+const JOYSTICK_CENTER: u32 = 1650;
+const JOYSTICK_MAX: u32 = 2801;
+const JOYSTICK_THRESHOLD: u32 = 30;
 const JOYSTICK_CENTER_RANGE: RangeInclusive<u32> = JOYSTICK_CENTER - JOYSTICK_THRESHOLD..=JOYSTICK_CENTER + JOYSTICK_THRESHOLD;
-const JOYSTICK_START_RANGE: RangeInclusive<u32> = JOYSTICK_MIN..=JOYSTICK_CENTER - JOYSTICK_THRESHOLD;
-const JOYSTICK_END_RANGE: RangeInclusive<u32> = JOYSTICK_CENTER + JOYSTICK_THRESHOLD..=JOYSTICK_MAX;
 
+const RATIO: f64 = MAX_DELAY_MS as f64 / JOYSTICK_MAX as f64;
+
+#[derive(Debug)]
 enum Cmd {
     Stop,
     Forward {
@@ -120,23 +123,32 @@ enum Cmd {
 
 impl Cmd {
     fn from_joystick_value(joystick_value: u16) -> Self {
-        match joystick_value as u32 {
-            val if JOYSTICK_CENTER_RANGE.contains(&val) => Cmd::Stop,
-            val if JOYSTICK_START_RANGE.contains(&val) => {
-                let delay_ms = Self::value_to_delay(val);
+        let res = match joystick_value as u32 {
+            val if JOYSTICK_CENTER_RANGE.contains(&val) => {
+                Cmd::Stop
+            },
+            val if val <= JOYSTICK_CENTER => {
+                let delay_ms = Self::value_to_delay(val, false);
                 Cmd::Forward { delay_ms }
             }
-            val if JOYSTICK_END_RANGE.contains(&val) => {
-                let delay_ms = Self::value_to_delay(val);
+            val if val > JOYSTICK_CENTER => {
+                let delay_ms = Self::value_to_delay(val, true);
                 Cmd::Backward { delay_ms }
             }
             _ => panic!("Joystick value is out of range: {}", joystick_value)
-        }
+        };
+        log::debug!("cmd =  {res:?} for {joystick_value}");
+        res
     }
 
     /// Converts joystick value to the delay in milliseconds.
     /// The more the joystick is deflected, the faster the motor moves.
-    fn value_to_delay(joystick_value: u32) -> u32 {
-        joystick_value * MAX_DELAY_MS / JOYSTICK_MAX
+    fn value_to_delay(joystick_value: u32, invert: bool) -> u32 {
+        let value = joystick_value.min(JOYSTICK_MAX).max(JOYSTICK_MIN) as f64;
+        if invert {
+            (MAX_DELAY_MS - (value * RATIO) as u32).max(MIN_DELAY_MS)
+        } else {
+            ((value * RATIO) as u32).max(MIN_DELAY_MS)
+        }
     }
 }
