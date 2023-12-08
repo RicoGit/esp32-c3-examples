@@ -21,11 +21,9 @@ fn main() -> eyre::Result<()> {
         .resolution(Resolution::Bits10)
         .speed_mode(SpeedMode::LowSpeed);
     let timer_driver = LedcTimerDriver::new(peripherals.ledc.timer0, &timer_config)?;
-    let mut driver = LedcDriver::new(
-        peripherals.ledc.channel0,
-        timer_driver,
-        peripherals.pins.gpio18,
-    )?;
+    // 'gpio8' for esp32 SuperMini, 'gpio18' for esp32 01-M-Kit
+    let led_pin = peripherals.pins.gpio8;
+    let mut driver = LedcDriver::new(peripherals.ledc.channel0, timer_driver, led_pin)?;
 
     let max_duty = driver.get_max_duty(); // 1023, see Resolution::Bits10 above
     log::info!("Max duty {}", max_duty);

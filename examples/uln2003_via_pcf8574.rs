@@ -12,8 +12,8 @@ use esp_idf_svc::hal::delay::{Delay, Ets};
 use esp_idf_svc::hal::i2c::{I2cConfig, I2cDriver};
 use esp_idf_svc::hal::prelude::*;
 
-use pcf857x::{OutputPin, Pcf8574, SlaveAddr};
 use pcf857x::pcf8574::Parts;
+use pcf857x::{OutputPin, Pcf8574, SlaveAddr};
 
 fn main() -> eyre::Result<()> {
     // It is necessary to call this function once. Otherwise some patches to the runtime
@@ -32,7 +32,8 @@ fn main() -> eyre::Result<()> {
 
     let config = I2cConfig::new().baudrate(100.kHz().into());
     let i2c = I2cDriver::new(i2c, sda, scl, &config)?;
-    let mut expander: Pcf8574<I2cDriver> = Pcf8574::new(i2c, SlaveAddr::Alternative(true, true, true));
+    let mut expander: Pcf8574<I2cDriver> =
+        Pcf8574::new(i2c, SlaveAddr::Alternative(true, true, true));
 
     let Parts { p7, p6, p5, p4, .. } = expander.split();
     let mut motor = Motor::new(p7, p6, p5, p4);
@@ -62,13 +63,7 @@ struct Motor<P1, P2, P3, P4> {
 }
 
 impl<P1: OutputPin, P2: OutputPin, P3: OutputPin, P4: OutputPin> Motor<P1, P2, P3, P4> {
-    pub fn new(
-        mut pin1: P1,
-        mut pin2: P2,
-        mut pin3: P3,
-        mut pin4: P4
-    ) -> Self {
-
+    pub fn new(mut pin1: P1, mut pin2: P2, mut pin3: P3, mut pin4: P4) -> Self {
         let mut motor = Motor {
             step: 0,
             int1: pin1,
@@ -80,8 +75,7 @@ impl<P1: OutputPin, P2: OutputPin, P3: OutputPin, P4: OutputPin> Motor<P1, P2, P
         motor
     }
 
-    fn step_forward(&mut self
-    ) {
+    fn step_forward(&mut self) {
         self.do_step();
         if self.step == 7 {
             self.step = 0;
@@ -90,8 +84,7 @@ impl<P1: OutputPin, P2: OutputPin, P3: OutputPin, P4: OutputPin> Motor<P1, P2, P
         }
     }
 
-    fn step_back(&mut self
-    ) {
+    fn step_back(&mut self) {
         self.do_step();
         if self.step == 0 {
             self.step = 7;
@@ -116,19 +109,22 @@ impl<P1: OutputPin, P2: OutputPin, P3: OutputPin, P4: OutputPin> Motor<P1, P2, P
                 self.int3.set_low();
                 self.int4.set_high();
             }
-            1 => {  // 0011
+            1 => {
+                // 0011
                 self.int1.set_low();
                 self.int2.set_low();
                 self.int3.set_high();
                 self.int4.set_high();
             }
-            2 => {  // 0010
+            2 => {
+                // 0010
                 self.int1.set_low();
                 self.int2.set_low();
                 self.int3.set_high();
                 self.int4.set_low();
             }
-            3 => {  // 0110
+            3 => {
+                // 0110
                 self.int1.set_low();
                 self.int2.set_high();
                 self.int3.set_high();
@@ -141,19 +137,22 @@ impl<P1: OutputPin, P2: OutputPin, P3: OutputPin, P4: OutputPin> Motor<P1, P2, P
                 self.int3.set_low();
                 self.int4.set_low();
             }
-            5 => {  // 1100
+            5 => {
+                // 1100
                 self.int1.set_high();
                 self.int2.set_high();
                 self.int3.set_low();
                 self.int4.set_low();
             }
-            6 => {  // 1000
+            6 => {
+                // 1000
                 self.int1.set_high();
                 self.int2.set_low();
                 self.int3.set_low();
                 self.int4.set_low();
             }
-            7 => {  // 1001
+            7 => {
+                // 1001
                 self.int1.set_high();
                 self.int2.set_low();
                 self.int3.set_low();
@@ -162,5 +161,4 @@ impl<P1: OutputPin, P2: OutputPin, P3: OutputPin, P4: OutputPin> Motor<P1, P2, P
             _ => {}
         }
     }
-
 }

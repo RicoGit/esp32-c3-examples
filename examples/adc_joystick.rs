@@ -2,9 +2,8 @@
 //!
 //! `cargo run --example adc_joystick`
 
-
-use esp_idf_svc::hal::adc::{AdcChannelDriver, AdcDriver, attenuation};
 use esp_idf_svc::hal::adc::config::Config;
+use esp_idf_svc::hal::adc::{attenuation, AdcChannelDriver, AdcDriver};
 use esp_idf_svc::hal::delay::FreeRtos;
 use esp_idf_svc::hal::gpio::{PinDriver, Pull};
 use esp_idf_svc::hal::prelude::*;
@@ -18,7 +17,6 @@ fn main() -> eyre::Result<()> {
     esp_idf_svc::log::EspLogger::initialize_default();
 
     let peripherals = Peripherals::take().unwrap();
-
 
     let mut adc = AdcDriver::new(peripherals.adc1, &Config::new().calibration(true))?;
 
@@ -35,12 +33,14 @@ fn main() -> eyre::Result<()> {
 
     let mut led = PinDriver::output(peripherals.pins.gpio18)?;
 
-
-
     loop {
         // you can change the sleep duration depending on how often you want to sample
         FreeRtos::delay_ms(50);
-        println!("X: {}, Y: {}", adc.read(&mut adc_pin_x)?, adc.read(&mut adc_pin_y)?);
+        println!(
+            "X: {}, Y: {}",
+            adc.read(&mut adc_pin_x)?,
+            adc.read(&mut adc_pin_y)?
+        );
 
         if button.is_low() {
             led.set_high()?;
@@ -54,5 +54,4 @@ fn main() -> eyre::Result<()> {
     // 0 - 20    - as start position
     // 1620-1690 - as center position
     // 2081      - as end position
-
 }

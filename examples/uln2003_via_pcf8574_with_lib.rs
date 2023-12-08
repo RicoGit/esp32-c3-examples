@@ -5,12 +5,12 @@
 //!
 //! `cargo run --example uln2003_via_pcf8574_with_lib`
 
-use esp_idf_svc::hal::delay::{Delay};
+use esp_idf_svc::hal::delay::Delay;
 use esp_idf_svc::hal::i2c::{I2cConfig, I2cDriver};
 use esp_idf_svc::hal::prelude::*;
 
-use pcf857x::{Pcf8574, SlaveAddr};
 use pcf857x::pcf8574::Parts;
+use pcf857x::{Pcf8574, SlaveAddr};
 use uln2003::{Direction, StepperMotor};
 
 fn main() -> eyre::Result<()> {
@@ -32,7 +32,16 @@ fn main() -> eyre::Result<()> {
     let i2c = I2cDriver::new(i2c, sda, scl, &config)?;
     let expander: Pcf8574<I2cDriver> = Pcf8574::new(i2c, SlaveAddr::Alternative(true, true, true));
 
-    let Parts { p7, p6, p5, p4, p3, p2, p1, p0 } = expander.split();
+    let Parts {
+        p7,
+        p6,
+        p5,
+        p4,
+        p3,
+        p2,
+        p1,
+        p0,
+    } = expander.split();
 
     let delay = Some(Delay::new(10_000));
     let mut motor1 = uln2003::ULN2003::new(p7, p6, p5, p4, delay.clone());

@@ -33,5 +33,9 @@ uln2003 = "0.2"
 pcf857x = "0.4"
 eyre = "0.6.8"
 
+# ds18b29_mqtt
+ds18b20 = "0.1"
+one-wire-bus = "0.1"
+
 [build-dependencies]
 embuild = "0.31.3"
