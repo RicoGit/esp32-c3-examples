@@ -1,0 +1,8 @@
+[mqtt]
+
+wifi_ssid = "SSID"
+wifi_password = "PASS"
+mqtt_host = "HOST"
+mqtt_port = 1883
+mqtt_user = "USER"
+mqtt_password = "PASS"
