@@ -1,4 +1,7 @@
-[mqtt]
+[esp32-c3-examples]
+
+wifi_ssid = "SSID"
+wifi_password = "PASS"
 
 wifi_ssid = "SSID"
 wifi_password = "PASS"

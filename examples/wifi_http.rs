@@ -1,12 +1,13 @@
-//! Connectes to MQTT (via WiFi), publishes a message and reads it back.
+//! Connectes to WiFi and makrs Http Get request.
 //!
-//! `cargo run --example mqtt`
+//! Copy `cfg.toml.example` into `cfg.toml` and fill wifi_ssid and wifi_password.
+//! `cargo run --example wifi_http`
 
+use embedded_svc::http::client::Client;
 use esp_idf_svc::eventloop::EspSystemEventLoop;
 use esp_idf_svc::hal::prelude::*;
 use esp_idf_svc::nvs::EspDefaultNvsPartition;
 use esp_idf_svc::wifi::{AuthMethod, BlockingWifi, ClientConfiguration, Configuration, EspWifi};
-use esp_idf_svc::http::{client as http_client, Method};
 
 fn main() -> eyre::Result<()> {
     // It is necessary to call this function once. Otherwise some patches to the runtime
@@ -32,14 +33,23 @@ fn main() -> eyre::Result<()> {
     let ip_info = wifi.wifi().sta_netif().get_ip_info()?;
     log::info!("Wifi DHCP info: {:?}", ip_info);
 
-    let http_config = http_client::Configuration::default();
-    let mut client = http_client::EspHttpConnection::new(&http_config).expect("http client should be created");
+    let http_config = esp_idf_svc::http::client::Configuration::default();
+    let mut client = Client::wrap(
+        esp_idf_svc::http::client::EspHttpConnection::new(&http_config)
+            .expect("http client should be created"),
+    );
 
-    client.initiate_request(Method::Get, "http://example.com", &[]).expect("http GET request should be ok");
-    log::info!("response status: {:?}", client.status());
-    let mut buf = [0u8; 1024];
-    client.read(&mut buf).expect("http read should be ok");
-    log::info!("response body: {:?}", buf);
+    let url = "http://example.com";
+    let request = client.get(url).expect("http GET request should be ok");
+    log::info!("-> GET {}", url);
+    let mut response = request.submit()?;
+    let status = response.status();
+    log::info!("<- {}", status);
+    let mut buf = [0u8; 2048];
+    let bytes_read =
+        embedded_svc::utils::io::try_read_full(&mut response, &mut buf).map_err(|e| e.0)?;
+    let body = std::str::from_utf8(&buf[0..bytes_read]).unwrap();
+    log::info!("Body: {body}");
 
     Ok(())
 }
@@ -75,4 +85,3 @@ fn connect_wifi(wifi: &mut BlockingWifi<EspWifi<'static>>) -> eyre::Result<()> {
 
     Ok(())
 }
-
